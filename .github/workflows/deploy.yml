@@ -1,0 +1,52 @@
+name: Deploy E-Commerce App
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build Docker images
+      run: |
+        echo "🔨 Building Docker images..."
+        docker compose build
+        echo "✅ Images built successfully"
+
+    - name: Test Application
+      run: |
+        echo "🐳 Starting containers..."
+        docker compose up -d
+        
+        echo "⏳ Waiting for services to start..."
+        sleep 30
+        
+        echo "🏥 Running health checks..."
+        # Test backend
+        if curl -f http://localhost:5000/health; then
+          echo "✅ Backend is healthy"
+        else
+          echo "❌ Backend health check failed"
+          exit 1
+        fi
+        
+        # Test frontend
+        if curl -f http://localhost:3000; then
+          echo "✅ Frontend is responding"
+        else
+          echo "❌ Frontend check failed"
+          exit 1
+        fi
+        
+        echo "🧹 Cleaning up..."
+        docker compose down
+        echo "🎉 All tests passed!"
+
+    - name: Success Message
+      if: success()
+      run: echo "🚀 CI Pipeline completed successfully! Your app is ready for deployment."
